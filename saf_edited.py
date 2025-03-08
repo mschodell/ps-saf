@@ -5,14 +5,14 @@ import pygsheets
 
 def main():
     #GOOGLESHEETS SET UP
-    gc = pygsheets.authorize(service_file=os.getenv("gsheet"))
+    gc = pygsheets.authorize(service_file=os.getenv("GSHEETS"))
 
     #spreadsheet key for where the data goes
     spreadsheet_key = "1t8qYEmbyaB8RvgSUJPFoZfvPHx7NUE7sN82ZNImwyPI"
 
     # API credentials
     # Read the token from the file
-    token = os.getenv("token")
+    token = os.getenv("TOKEN")
 
     #current form ID
     current_form = "41393"
