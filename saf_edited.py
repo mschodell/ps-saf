@@ -6,7 +6,24 @@ import pygsheets
 
 def main():
     #GOOGLESHEETS SET UP
-    gc = pygsheets.authorize(service_file=os.getenv("GSHEETS"))
+    # Decode the Base64-encoded credentials and save as a JSON file
+    CREDENTIALS_FILE = "client_secret.json"
+    base64_credentials = os.getenv("GSHEETS_BASE64")
+    
+    if base64_credentials:
+        try:
+            with open(CREDENTIALS_FILE, "w") as f:
+                f.write(base64.b64decode(base64_credentials).decode())
+            print("✅ Credentials file decoded successfully.")
+        except Exception as e:
+            print("❌ Error decoding credentials:", e)
+            exit(1)
+    else:
+        print("❌ Error: GSHEETS_BASE64 environment variable not found!")
+        exit(1)
+    
+    # Authenticate with Google Sheets using the decoded file
+    gc = pygsheets.authorize(service_file=CREDENTIALS_FILE)
 
     #spreadsheet key for where the data goes
     spreadsheet_key = "1t8qYEmbyaB8RvgSUJPFoZfvPHx7NUE7sN82ZNImwyPI"
