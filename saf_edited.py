@@ -5,7 +5,7 @@ import pygsheets
 
 def main():
     #GOOGLESHEETS SET UP
-    gc = pygsheets.authorize(service_file='/Users/lucyschodell/Desktop/willow/fiery-tribute-453120-f9-3ed41865cd67.json')
+    gc = pygsheets.authorize(service_file=os.getenv("gsheet"))
 
     #spreadsheet key for where the data goes
     spreadsheet_key = "1t8qYEmbyaB8RvgSUJPFoZfvPHx7NUE7sN82ZNImwyPI"
