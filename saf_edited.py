@@ -5,12 +5,13 @@ from requests.auth import HTTPBasicAuth
 import pygsheets
 import base64
 
+
 def main():
-    #GOOGLESHEETS SET UP
+    # GOOGLE SHEETS SETUP
     # Decode the Base64-encoded credentials and save as a JSON file
     CREDENTIALS_FILE = "client_secret.json"
     base64_credentials = os.getenv("GSHEETS_BASE64")
-    
+
     if base64_credentials:
         try:
             with open(CREDENTIALS_FILE, "w") as f:
@@ -22,67 +23,70 @@ def main():
     else:
         print("❌ Error: GSHEETS_BASE64 environment variable not found!")
         exit(1)
-    
+
     # Authenticate with Google Sheets using the decoded file
     gc = pygsheets.authorize(service_file=CREDENTIALS_FILE)
 
-    #spreadsheet key for where the data goes
+    # Spreadsheet key for where the data goes
     spreadsheet_key = "1t8qYEmbyaB8RvgSUJPFoZfvPHx7NUE7sN82ZNImwyPI"
 
     # API credentials
-    # Read the token from the file
     token = os.getenv("TOKEN")
-
-    #current form ID
     current_form = "41393"
-    
-    #GET SUBMISSION RECORDS FOR CURRENT FORM
-    #get number of pages
-    endpoint_url = "http://secure.infosnap.com/api/v1/publishedactions/" + str(current_form) + "/submissionrecords"
-    response = requests.get(endpoint_url, auth=HTTPBasicAuth(token,""))
+
+    # GET SUBMISSION RECORDS FOR CURRENT FORM
+    endpoint_url = f"http://secure.infosnap.com/api/v1/publishedactions/{current_form}/submissionrecords"
+    response = requests.get(endpoint_url, auth=HTTPBasicAuth(token, ""))
+
+    if response.status_code != 200:
+        print(f"❌ API Request Failed! Status Code: {response.status_code}")
+        print("Response Text:", response.text)
+        exit(1)
+
     result = response.json()
+
+    # Validate the presence of 'metaData'
+    if 'metaData' not in result or 'pageCount' not in result['metaData']:
+        print("❌ Error: 'metaData' or 'pageCount' missing from API response.")
+        print("Full Response:", result)
+        exit(1)
+    
     pages = result['metaData']['pageCount']
-    
-    #iterate through pages  collecting data
     all_data = []
-    page = 1
     
-    while page <= pages:
-        endpoint_url = "http://secure.infosnap.com/api/v1/publishedactions/" + str(current_form) + "/submissionrecords?page=" + str(page)
-        response = requests.get(endpoint_url, auth=HTTPBasicAuth(token,""))
+    for page in range(1, pages + 1):
+        endpoint_url = f"http://secure.infosnap.com/api/v1/publishedactions/{current_form}/submissionrecords?page={page}"
+        response = requests.get(endpoint_url, auth=HTTPBasicAuth(token, ""))
+        
+        if response.status_code != 200:
+            print(f"❌ API Request Failed on page {page}! Status Code: {response.status_code}")
+            print("Response Text:", response.text)
+            continue  # Skip to the next page
+        
         data = response.json()
-        all_data.extend(data['records'])
-        page += 1
+        all_data.extend(data.get('records', []))
+    
+    if not all_data:
+        print("❌ No valid data retrieved from API.")
+        exit(1)
     
     df = pd.json_normalize(all_data)
-    
-    # convert the lists to tuples
     df = df.applymap(lambda x: tuple(x) if isinstance(x, list) else x)
-        
-    # replace NaN values with blank values
     df = df.fillna('')
-    
-    # Exclude rows where Status is "Discarded"
     df_filtered = df[df['status'] != 'Discarded']
-    
-    #get columns
     df_columns = pd.DataFrame(df_filtered.columns, columns=['Columns'])
-    
+
     spreadsheet = gc.open_by_key(spreadsheet_key)
-    print("Opened google sheet")
+    print("✅ Opened Google Sheet")
+
+    sheet = spreadsheet.worksheet('title', "Columns")
+    sheet.set_dataframe(df_columns, "A1")
     
-    #print all columns
-    sheet = spreadsheet.worksheet('title',"Columns")
-    sheet.set_dataframe(df_columns,"A1")
-    
-    #keep only certain columns
-    df_filtered = df_filtered[['id', 'firstName', 'lastName', 'dateOfBirth', 'grade', 'dataItems.adm_OneAppID', 'dataItems.adm_Qualified_MR']]  # Replace with the columns you want to keep
-    
+    df_filtered = df_filtered[['id', 'firstName', 'lastName', 'dateOfBirth', 'grade', 'dataItems.adm_OneAppID', 'dataItems.adm_Qualified_MR']]
     df_filtered['dateOfBirth'] = pd.to_datetime(df_filtered['dateOfBirth']).dt.strftime('%m/%d/%Y')
     
-    #ADD TO GOOGLE SHEET
-    sheet = spreadsheet.worksheet('title',"Submissions")
-    sheet.set_dataframe(df_filtered,"A1")
+    sheet = spreadsheet.worksheet('title', "Submissions")
+    sheet.set_dataframe(df_filtered, "A1")
 
 if __name__ == "__main__":
     main()
