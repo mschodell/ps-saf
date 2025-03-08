@@ -35,19 +35,16 @@ def main():
         all_data.extend(data['records'])
         page += 1
     
-    df2 = pd.json_normalize(all_data)
+    df = pd.json_normalize(all_data)
     
     # convert the lists to tuples
-    df2 = df2.applymap(lambda x: tuple(x) if isinstance(x, list) else x)
-    
-    # count the number of unique values in each column
-    unique_counts = df2.nunique()
-    
+    df = df.applymap(lambda x: tuple(x) if isinstance(x, list) else x)
+        
     # replace NaN values with blank values
-    df2 = df2.fillna('')
+    df = df.fillna('')
     
     # Exclude rows where Status is "Discarded"
-    df_filtered = df2[df2['status'] != 'Discarded']
+    df_filtered = df[df['status'] != 'Discarded']
     
     #get columns
     df_columns = pd.DataFrame(df_filtered.columns, columns=['Columns'])
@@ -61,7 +58,6 @@ def main():
     
     #keep only certain columns
     df_filtered = df_filtered[['id', 'firstName', 'lastName', 'dateOfBirth', 'grade', 'dataItems.adm_OneAppID', 'dataItems.adm_Qualified_MR']]  # Replace with the columns you want to keep
-    
     
     df_filtered['dateOfBirth'] = pd.to_datetime(df_filtered['dateOfBirth']).dt.strftime('%m/%d/%Y')
     
