@@ -1,7 +1,6 @@
 import requests
 import os
 import pandas as pd
-from requests.auth import HTTPBasicAuth
 import pygsheets
 import base64
 
@@ -34,9 +33,15 @@ def main():
     token = os.getenv("TOKEN")
     current_form = "41393"
 
+    # API headers (using Bearer Token)
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json"
+    }
+
     # GET SUBMISSION RECORDS FOR CURRENT FORM
     endpoint_url = f"http://secure.infosnap.com/api/v1/publishedactions/{current_form}/submissionrecords"
-    response = requests.get(endpoint_url, auth=HTTPBasicAuth(token, ""))
+    response = requests.get(endpoint_url, headers=headers)
 
     if response.status_code != 200:
         print(f"❌ API Request Failed! Status Code: {response.status_code}")
@@ -56,7 +61,7 @@ def main():
     
     for page in range(1, pages + 1):
         endpoint_url = f"http://secure.infosnap.com/api/v1/publishedactions/{current_form}/submissionrecords?page={page}"
-        response = requests.get(endpoint_url, auth=HTTPBasicAuth(token, ""))
+        response = requests.get(endpoint_url, headers=headers)
         
         if response.status_code != 200:
             print(f"❌ API Request Failed on page {page}! Status Code: {response.status_code}")
