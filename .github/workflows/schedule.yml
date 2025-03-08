@@ -9,7 +9,8 @@ jobs:
   run-script:
     runs-on: ubuntu-latest
     env:
-      GSHEETS_BASE64: ${{ secrets.GSHEETS_BASE64 }}  # Load Base64-encoded credentials
+      GSHEETS_BASE64: ${{ secrets.GSHEETS_BASE64 }}  # Google Sheets credentials
+      TOKEN: ${{ secrets.TOKEN }}  # API authentication token
 
     steps:
       - name: Checkout repository
@@ -25,6 +26,11 @@ jobs:
 
       - name: Decode Google Sheets JSON
         run: echo "$GSHEETS_BASE64" | base64 --decode > client_secret.json
+
+      - name: Debug Environment Variables
+        run: |
+          echo "TOKEN is ${TOKEN:0:5}*****"
+          echo "Decoded Google Sheets credentials stored as client_secret.json"
 
       - name: Run script
         run: python saf_edited.py
